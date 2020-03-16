@@ -1,0 +1,106 @@
+# Chatpackage sample;
+
+import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.FlowPane;
+import javafx.stage.Stage;
+
+import java.io.*;
+import java.net.Socket;
+
+public class Main extends Application {
+
+    BufferedWriter writer;
+    TextArea txArea;
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+     public void go() {
+     try {
+        Socket clientSocket = new Socket("127.0.0.1", 9876);
+         BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+         writer = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+
+        Thread tx = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String message;
+                try {
+                    while(!(message = reader.readLine()).isEmpty()) {
+                        txArea.appendText(message + "\n");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();   } }   });
+        tx.start();
+    } catch (IOException e) {
+        e.printStackTrace();   } }
+
+    @Override
+    public void start(Stage myStage) throws Exception{
+        go();
+
+        TextField tx;
+        TextField clientName;
+        FlowPane rootNode;
+        Scene myScene;
+        Label myLabel;
+        ScrollPane myScroll;
+        //TextArea txArea;
+        Button btnSend;
+
+        myStage.setTitle("Новый клиент"); //заголовок окна приложения
+        rootNode = new FlowPane(Orientation.VERTICAL, 0, 0); // - корневой узел - плавающая компоновка
+        myScene = new Scene(rootNode, 500, 200); //сцена - создание
+        myStage.setScene(myScene); //сцена - установка
+
+        txArea = new TextArea(); // где читать, многостр
+        myScroll = new ScrollPane(txArea);
+        myScroll.setPrefSize(450, 80);
+
+        tx = new TextField(); //создание текстового поля - куда писать, одностр
+        tx.setPrefColumnCount(10); //кол-во столбцов в текством поле
+        clientName = new TextField();
+        clientName.setText("Введите имя клиента");
+        clientName.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                myStage.setTitle(clientName.getText());
+            }
+        });
+
+
+        myLabel = new Label("Введите сообщение:"); //создание метки
+
+        // кнопка и ее обработчик:
+        btnSend = new Button("Отправить");
+
+            btnSend.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    try {
+                            writer.write(clientName.getText() + ": " + tx.getText() + "\n");
+                            writer.flush();                   }
+                    catch (IOException e) {
+                        e.printStackTrace();  } } } );
+
+        rootNode.getChildren().addAll(clientName, myLabel, tx, myScroll, btnSend); //добавление метки и кнопок в граф сцены
+        //rootNode.setAlignment(Pos.CENTER_LEFT);
+
+        myStage.show(); //отображение сцены
+
+
+
+
+
+    }
+
+
+
+}
